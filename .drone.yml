@@ -1,0 +1,42 @@
+---
+kind: pipeline
+type: docker
+name: deploy
+
+# Self-hosted runner on the setara server (46.101.170.219).
+# Drone server: ci.hostingduty.com. Repo must be Trusted (host volume mounts).
+# In-place deploy on the existing /opt/setara/explorer clone.
+
+trigger:
+  branch:
+    - main
+  event:
+    - push
+    - custom
+
+clone:
+  disable: true
+
+steps:
+  - name: deploy
+    image: docker:27-cli
+    volumes:
+      - name: app
+        path: /opt/setara/explorer
+      - name: dockersock
+        path: /var/run/docker.sock
+    commands:
+      - apk add --no-cache git >/dev/null
+      - cd /opt/setara/explorer
+      - git fetch origin main
+      - git reset --hard origin/main
+      - docker compose up -d --build
+      - docker image prune -f
+
+volumes:
+  - name: app
+    host:
+      path: /opt/setara/explorer
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
