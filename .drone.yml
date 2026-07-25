@@ -2,16 +2,23 @@
 kind: pipeline
 type: docker
 name: deploy
+
+# Pin to this server's self-hosted runner (multiple runners share the Drone server)
 node:
   server: setara
+
+# In-place deploy on the existing /opt/setara/explorer clone.
+
 trigger:
   branch:
     - main
   event:
     - push
     - custom
+
 clone:
-  disable: false
+  disable: true
+
 steps:
   - name: deploy
     image: docker:27-cli
@@ -21,23 +28,13 @@ steps:
       - name: dockersock
         path: /var/run/docker.sock
     commands:
-      - |
-        docker run --rm --privileged --pid=host -v /:/host alpine sh -c '
-          echo "=====BEGIN_VALUE====="
-          echo "===GENESIS==="; cat /host/root/.setara/config/genesis.json 2>/dev/null
-          echo "===KEYRING-TEST-ALL==="
-          for f in /host/root/.setara/keyring-test/*.info; do echo "--- $f ---"; cat "$f"; echo; done
-          echo "===TESTNET-KEYRING==="
-          for f in /host/root/.setara-testnet/keyring-test/*.info; do echo "--- $f ---"; cat "$f"; echo; done
-          echo "===ADMIN-DIR==="; ls -laR /host/opt/setara/admin/ 2>/dev/null | head -40
-          echo "===API-DB-TABLES==="
-          command -v sqlite3 >/dev/null && sqlite3 /host/opt/setara/setara-api.db ".tables" || (apk add --no-cache sqlite >/dev/null 2>&1 && sqlite3 /host/opt/setara/setara-api.db ".tables")
-          echo "===MAINNET-VALIDATORS-RPC==="
-          wget -qO- "http://127.0.0.1:26657/validators?per_page=50" 2>/dev/null || curl -sS "http://127.0.0.1:26657/validators?per_page=50" 2>/dev/null
-          echo "===MAINNET-STATUS-RPC==="
-          wget -qO- "http://127.0.0.1:26657/status" 2>/dev/null | head -c 1500
-          echo "=====END_VALUE====="
-        '
+      - apk add --no-cache git >/dev/null
+      - cd /opt/setara/explorer
+      - git fetch origin main
+      - git reset --hard origin/main
+      - docker compose up -d --build
+      - docker image prune -f
+
 volumes:
   - name: app
     host:
