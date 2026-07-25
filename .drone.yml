@@ -17,7 +17,7 @@ trigger:
     - custom
 
 clone:
-  disable: true
+  disable: false
 
 steps:
   - name: deploy
